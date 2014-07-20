@@ -1,6 +1,7 @@
 package sourcecoded.comms2.network.socket;
 
-import sourcecoded.comms2.api.data.map.GearedHashmap;
+
+import sourcecoded.data.map.GearedHashmap;
 
 import java.net.Socket;
 
@@ -12,7 +13,7 @@ public class ServerConnectionHandler {
     /**
      * A Geared hashmap of all the clients. Type1 is the ClientID
      */
-    public GearedHashmap<String, Socket> clients = new GearedHashmap<String, Socket>();
+    public GearedHashmap<String, SCClient> clients = new GearedHashmap<String, SCClient>();
 
 
 
