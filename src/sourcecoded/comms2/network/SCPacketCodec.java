@@ -10,14 +10,18 @@ import sourcecoded.events.annotation.EventListener;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class SCPacketCodec {
 
-    private GearedHashmap<Integer, Class<? extends ISourceCommsPacket>> discriminators = new GearedHashmap<Integer, Class<? extends ISourceCommsPacket>>();
+    protected GearedHashmap<Integer, Class<? extends ISourceCommsPacket>> discriminators = new GearedHashmap<Integer, Class<? extends ISourceCommsPacket>>();
     private int lastKey = 0;
 
     private void addDiscriminator(Class<? extends ISourceCommsPacket> packetClass) {
+        if (discriminators.getMapReverse().containsKey(packetClass)) return;
         discriminators.put(lastKey, packetClass);
         lastKey++;
     }

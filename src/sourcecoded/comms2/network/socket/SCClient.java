@@ -1,15 +1,15 @@
 package sourcecoded.comms2.network.socket;
 
+import sourcecoded.comms2.network.SCPacketHandler;
+import sourcecoded.comms2.network.SCSide;
 import sourcecoded.comms2.timeout.TimeoutController;
+import sourcecoded.comms2.timeout.TimeoutException;
+import sourcecoded.events.AbstractEvent;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class SCClient {
 
@@ -23,6 +23,9 @@ public class SCClient {
     String hostname;
     int port;
 
+    SCPacketHandler packetHandler;
+    SCSide launchSide;
+
     /**
      * 10 seconds
      */
@@ -35,7 +38,8 @@ public class SCClient {
                 socket = new Socket(hostname, port);
                 setupStreams();
             } catch (Exception e) {
-                e.printStackTrace();
+                if (this.isAlive())
+                    e.printStackTrace();
             }
         }
     };
@@ -45,15 +49,13 @@ public class SCClient {
      */
     public SCClient(Socket socket) {
         this.socket = socket;
+        this.packetHandler = new SCPacketHandler();
+        launchSide = SCSide.SERVER;
         try {
             setupStreams();
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static void main(String[] args) {
-        new SCClient("10.0.0.29", 1338, "Blah", 1000);
     }
 
     /**
@@ -63,6 +65,8 @@ public class SCClient {
         this.CLIENT_ID = client_id;
         this.hostname = hostname;
         this.port = port;
+        this.packetHandler = new SCPacketHandler();
+        launchSide = SCSide.CLIENT;
 
         connect.start();
 
@@ -70,7 +74,7 @@ public class SCClient {
             if (timeout > 0) {
                 TimeoutController.execute(connect, timeout);
             }
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
             //do the thing
         }
 
@@ -89,6 +93,27 @@ public class SCClient {
     public void setupStreams() throws IOException {
         dis = new DataInputStream(socket.getInputStream());
         dos = new DataOutputStream(socket.getOutputStream());
+    }
+
+    /**
+     * Get the packet handler object for this socket
+     */
+    public SCPacketHandler getPacketHandler() {
+        return packetHandler;
+    }
+
+    /**
+     * Subscribe to the Event Bus for this socket
+     */
+    public void subscribeToEventBus(Object obj) {
+        packetHandler.EVENT_BUS.register(obj);
+    }
+
+    /**
+     * Raise an event
+     */
+    public void raiseEventBusEvent(AbstractEvent event) {
+        packetHandler.EVENT_BUS.raiseEvent(event);
     }
 
 }

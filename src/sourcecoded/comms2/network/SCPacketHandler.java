@@ -1,6 +1,7 @@
 package sourcecoded.comms2.network;
 
 import sourcecoded.comms2.event.EventPacketRegister;
+import sourcecoded.comms2.event.MasterEventBus;
 import sourcecoded.comms2.network.packet.ISourceCommsPacket;
 import sourcecoded.comms2.network.packet.Pkt0x00ConnectionRequest;
 import sourcecoded.comms2.network.packet.Pkt0x01ConnectionAccepted;
@@ -23,6 +24,7 @@ public class SCPacketHandler {
         CODEC = new SCPacketCodecInstance();
 
         EVENT_BUS.register(CODEC);
+        EVENT_BUS.register(MasterEventBus.instance());
         EVENT_BUS.raiseEvent(new EventPacketRegister());
     }
 
@@ -45,5 +47,4 @@ public class SCPacketHandler {
             packet.decode(stream);
         }
     }
-
 }

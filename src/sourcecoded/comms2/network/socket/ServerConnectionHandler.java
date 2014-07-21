@@ -3,8 +3,6 @@ package sourcecoded.comms2.network.socket;
 
 import sourcecoded.data.map.GearedHashmap;
 
-import java.net.Socket;
-
 /**
  * Implemented Server-Side to handle multiple clients
  */
