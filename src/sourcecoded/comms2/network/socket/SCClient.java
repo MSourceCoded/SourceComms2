@@ -1,9 +1,16 @@
 package sourcecoded.comms2.network.socket;
 
+import sourcecoded.comms2.event.EventClientConnected;
+import sourcecoded.comms2.exception.NotAuthenticatedException;
+import sourcecoded.comms2.exception.NotConnectedException;
 import sourcecoded.comms2.network.SCPacketHandler;
 import sourcecoded.comms2.network.SCSide;
+import sourcecoded.comms2.network.packet.ISourceCommsPacket;
+import sourcecoded.comms2.network.packet.Pkt0x00PacketReceivedConfirmation;
 import sourcecoded.comms2.timeout.TimeoutController;
 import sourcecoded.comms2.timeout.TimeoutException;
+import sourcecoded.comms2.util.StreamUtils;
+import sourcecoded.data.buffer.array.GravityBuffer;
 import sourcecoded.events.AbstractEvent;
 
 import java.io.DataInputStream;
@@ -25,6 +32,9 @@ public class SCClient {
 
     SCPacketHandler packetHandler;
     SCSide launchSide;
+    GravityBuffer<ISourceCommsPacket> packetBuffer = new GravityBuffer<ISourceCommsPacket>();
+
+    boolean auth;
 
     /**
      * 10 seconds
@@ -37,6 +47,38 @@ public class SCClient {
             try {
                 socket = new Socket(hostname, port);
                 setupStreams();
+            } catch (Exception e) {
+                if (this.isAlive())
+                    e.printStackTrace();
+            }
+        }
+    };
+
+    Thread doListen = new Thread() {
+        @Override
+        public void run() {
+            try {
+                while (isConnected() && isAlive()) {
+                    int discriminator = dis.readInt();
+                    packetHandler.matchDiscriminator(discriminator);
+                    packetHandler.sendPacket(dos, new Pkt0x00PacketReceivedConfirmation());
+                }
+            } catch (Exception e) {
+                if (this.isAlive())
+                    e.printStackTrace();
+            }
+        }
+    };
+
+    Thread sending = new Thread() {
+        public void run() {
+            try {
+                while (packetBuffer.size() > 0) {
+                    if (!packetHandler.isBusy) {
+                        packetHandler.sendPacket(dos, packetBuffer.retrieve());
+                        packetBuffer.delete();
+                    }
+                }
             } catch (Exception e) {
                 if (this.isAlive())
                     e.printStackTrace();
@@ -68,14 +110,12 @@ public class SCClient {
         this.packetHandler = new SCPacketHandler();
         launchSide = SCSide.CLIENT;
 
-        connect.start();
-
         try {
             if (timeout > 0) {
                 TimeoutController.execute(connect, timeout);
             }
         } catch (TimeoutException e) {
-            //do the thing
+            e.printStackTrace();
         }
 
     }
@@ -88,11 +128,15 @@ public class SCClient {
     }
 
     /**
-     * Setup the data streams for this socket
+     * Setup the data streams for this socket. This also registers the instance in the EventBus.
      */
     public void setupStreams() throws IOException {
         dis = new DataInputStream(socket.getInputStream());
         dos = new DataOutputStream(socket.getOutputStream());
+
+        subscribeToEventBus(this);
+
+        initialAuthentication();
     }
 
     /**
@@ -116,4 +160,55 @@ public class SCClient {
         packetHandler.EVENT_BUS.raiseEvent(event);
     }
 
+    /**
+     * Am I connected?
+     */
+    public boolean isConnected() {
+        return socket.isConnected();
+    }
+
+    /**
+     * Am I connected to the server and allowed to send proper packets?
+     */
+    public boolean isAuthenticated() {
+        return auth;
+    }
+
+    /**
+     * Send a packet
+     */
+    public void sendPacket(ISourceCommsPacket packet) throws Exception {
+        if (!isConnected()) throw new NotConnectedException();
+        if (!isAuthenticated()) throw new NotAuthenticatedException();
+
+        //packetHandler.sendPacket(this.dos, packet);
+        packetBuffer.append(packet);
+        sending.start();
+    }
+
+    //LISTENING
+
+    private void initialAuthentication() throws IOException {
+        if (launchSide == SCSide.CLIENT) {
+            StreamUtils.writeString(CLIENT_ID, dos);
+
+            if (dis.readInt() == -1) {
+                auth = true;
+            }
+        }
+
+        if (launchSide == SCSide.SERVER) {
+            CLIENT_ID = StreamUtils.readString(dis);
+            dos.writeInt(-1);
+            auth = true;
+        }
+
+        listenLoop();
+
+        getPacketHandler().EVENT_BUS.raiseEvent(new EventClientConnected(CLIENT_ID, launchSide));
+    }
+
+    private void listenLoop() {
+        doListen.start();
+    }
 }
