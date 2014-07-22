@@ -49,7 +49,7 @@ public class SCClient {
                 socket = new Socket(hostname, port);
                 setupStreams();
             } catch (Exception e) {
-                if (this.isAlive())
+                if (!this.isInterrupted())
                     e.printStackTrace();
             }
         }
@@ -59,13 +59,13 @@ public class SCClient {
         @Override
         public void run() {
             try {
-                while (isConnected() && isAlive()) {
+                while (isConnected() && !isInterrupted()) {
                     int discriminator = dis.readInt();
                     packetHandler.matchDiscriminator(discriminator);
                     packetHandler.sendPacket(dos, new Pkt0x00PacketReceivedConfirmation());
                 }
             } catch (Exception e) {
-                if (this.isAlive())
+                if (!this.isInterrupted())
                     e.printStackTrace();
             }
         }
@@ -81,7 +81,7 @@ public class SCClient {
                     }
                 }
             } catch (Exception e) {
-                if (this.isAlive())
+                if (!this.isInterrupted())
                     e.printStackTrace();
             }
         }
@@ -218,5 +218,15 @@ public class SCClient {
 
     private void listenLoop() {
         doListen.start();
+    }
+
+    /**
+     * Close the thread
+     */
+    public void close() throws IOException {
+        dos.close();
+        dis.close();
+        doListen.interrupt();
+        socket.close();
     }
 }

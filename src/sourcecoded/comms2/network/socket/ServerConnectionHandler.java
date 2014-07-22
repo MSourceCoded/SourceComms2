@@ -22,4 +22,8 @@ public class ServerConnectionHandler {
 
         return null;
     }
+
+    public void remove(String id) {
+        clients.remove(id);
+    }
 }

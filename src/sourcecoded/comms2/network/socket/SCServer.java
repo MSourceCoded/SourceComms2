@@ -17,11 +17,12 @@ public class SCServer {
 
     Thread clientConnectionLoop = new Thread() {
         public void run() {
-            while (isAcceptingClients) {
+            while (isAcceptingClients && !isInterrupted()) {
                 try {
                     clientHandler.addClient(server.accept());
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    if (!isInterrupted())
+                        e.printStackTrace();
                 }
             }
         }
@@ -66,6 +67,32 @@ public class SCServer {
      */
     public SCClient getClient(String clientID) {
         return clientHandler.getClient(clientID);
+    }
+
+    /**
+     * Force disconnect a client
+     */
+    public void disconnect(String clientID) throws IOException {
+        clientHandler.getClient(clientID).close();
+        clientHandler.remove(clientID);
+    }
+
+    /**
+     * Disconnect all the clients
+     */
+    public void disconnectAll() throws IOException {
+        for (String id : getClientIDs())
+            disconnect(id);
+    }
+
+    /**
+     * Close the server
+     */
+    public void close() throws IOException {
+        disconnectAll();
+        clientConnectionLoop.interrupt();
+        isAcceptingClients = false;
+        server.close();
     }
 
 }
