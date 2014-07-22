@@ -2,7 +2,6 @@ package sourcecoded.comms2.event;
 
 import sourcecoded.events.AbstractEvent;
 import sourcecoded.events.EventBus;
-import sourcecoded.events.EventPriority;
 import sourcecoded.events.annotation.EventListener;
 
 public class MasterEventBus extends EventBus {

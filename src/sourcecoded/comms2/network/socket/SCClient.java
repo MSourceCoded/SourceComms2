@@ -29,6 +29,7 @@ public class SCClient {
 
     String hostname;
     int port;
+    int timeout;
 
     SCPacketHandler packetHandler;
     SCSide launchSide;
@@ -109,15 +110,22 @@ public class SCClient {
         this.port = port;
         this.packetHandler = new SCPacketHandler();
         launchSide = SCSide.CLIENT;
+        this.timeout = timeout;
+    }
 
+    /**
+     * Only use this on the CLIENT side
+     */
+    public void connect() {
         try {
             if (timeout > 0) {
                 TimeoutController.execute(connect, timeout);
+            } else {
+                connect.start();
             }
         } catch (TimeoutException e) {
             e.printStackTrace();
         }
-
     }
 
     /**

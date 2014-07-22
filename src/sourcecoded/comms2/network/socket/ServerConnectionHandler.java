@@ -1,8 +1,6 @@
 package sourcecoded.comms2.network.socket;
 
 
-import sourcecoded.data.map.GearedHashmap;
-
 import java.net.Socket;
 import java.util.ArrayList;
 
