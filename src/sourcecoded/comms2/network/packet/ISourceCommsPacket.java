@@ -1,5 +1,7 @@
 package sourcecoded.comms2.network.packet;
 
+import sourcecoded.comms2.network.socket.SCClient;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -24,5 +26,10 @@ public interface ISourceCommsPacket {
 	 * @throws IOException Something happened that wasn't meant to
 	 */
 	public void decode(DataInputStream data) throws IOException;
+
+    /**
+     * Triggered after the packet is decoded and handled. All resources should be available through the socket
+     */
+    public void channelRead(SCClient socket) throws Exception;
 
 }

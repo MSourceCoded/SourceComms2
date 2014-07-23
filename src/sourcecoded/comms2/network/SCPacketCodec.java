@@ -70,14 +70,14 @@ public abstract class SCPacketCodec {
     }
 
     public abstract void abstractEncode(ISourceCommsPacket packet, DataOutputStream stream) throws IOException;
-    public abstract void abstractDecode(ISourceCommsPacket packet, DataInputStream stream) throws IOException;
+    public abstract void abstractDecode(ISourceCommsPacket packet, DataInputStream stream) throws Exception;
 
     public void encodeInto(ISourceCommsPacket packet, DataOutputStream dos) throws IOException {
         dos.writeInt(getDiscriminatorForClass(packet.getClass()));
         abstractEncode(packet, dos);
     }
 
-    public void decodeInto(ISourceCommsPacket packet, DataInputStream dis) throws IOException {
+    public void decodeInto(ISourceCommsPacket packet, DataInputStream dis) throws Exception {
         abstractDecode(packet, dis);
     }
 

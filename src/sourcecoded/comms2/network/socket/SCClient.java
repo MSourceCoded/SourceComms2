@@ -20,20 +20,19 @@ import java.net.Socket;
 
 public class SCClient {
 
-    String CLIENT_ID;
+    public String CLIENT_ID;
 
     Socket socket;
 
-    DataInputStream dis;
-    DataOutputStream dos;
+    public DataInputStream dis;
+    public DataOutputStream dos;
 
     String hostname;
     int port;
     int timeout;
 
-    SCPacketHandler packetHandler;
-    SCSide launchSide;
-    GravityBuffer<ISourceCommsPacket> packetBuffer = new GravityBuffer<ISourceCommsPacket>();
+    volatile SCPacketHandler packetHandler;
+    public SCSide launchSide;
 
     boolean auth;
 
@@ -61,24 +60,8 @@ public class SCClient {
             try {
                 while (isConnected() && !isInterrupted()) {
                     int discriminator = dis.readInt();
-                    packetHandler.matchDiscriminator(discriminator);
-                    packetHandler.sendPacket(dos, new Pkt0x00PacketReceivedConfirmation());
-                }
-            } catch (Exception e) {
-                if (!this.isInterrupted())
-                    e.printStackTrace();
-            }
-        }
-    };
-
-    Thread sending = new Thread() {
-        public void run() {
-            try {
-                while (packetBuffer.size() > 0) {
-                    if (!packetHandler.isBusy) {
-                        packetHandler.sendPacket(dos, packetBuffer.retrieve());
-                        packetBuffer.delete();
-                    }
+                    boolean cont = packetHandler.handlePacket(discriminator, dis);
+                    if (cont) packetHandler.sendPacket(dos, new Pkt0x00PacketReceivedConfirmation());
                 }
             } catch (Exception e) {
                 if (!this.isInterrupted())
@@ -92,7 +75,7 @@ public class SCClient {
      */
     public SCClient(Socket socket) {
         this.socket = socket;
-        this.packetHandler = new SCPacketHandler();
+        this.packetHandler = new SCPacketHandler(this);
         launchSide = SCSide.SERVER;
         try {
             setupStreams();
@@ -108,7 +91,7 @@ public class SCClient {
         this.CLIENT_ID = client_id;
         this.hostname = hostname;
         this.port = port;
-        this.packetHandler = new SCPacketHandler();
+        this.packetHandler = new SCPacketHandler(this);
         launchSide = SCSide.CLIENT;
         this.timeout = timeout;
     }
@@ -154,6 +137,10 @@ public class SCClient {
         return packetHandler;
     }
 
+    public GravityBuffer<ISourceCommsPacket> getPacketBuffer() {
+        return getPacketHandler().packetBuffer;
+    }
+
     /**
      * Subscribe to the Event Bus for this socket
      */
@@ -189,9 +176,10 @@ public class SCClient {
         if (!isConnected()) throw new NotConnectedException();
         if (!isAuthenticated()) throw new NotAuthenticatedException();
 
-        //packetHandler.sendPacket(this.dos, packet);
-        packetBuffer.append(packet);
-        sending.start();
+        if (getPacketHandler().isBusy)
+            getPacketBuffer().append(packet);
+        else
+            getPacketHandler().sendPacket(dos, packet);
     }
 
     //LISTENING

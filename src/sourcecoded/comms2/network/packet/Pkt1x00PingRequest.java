@@ -6,18 +6,23 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class Pkt0x00PacketReceivedConfirmation implements ISourceCommsPacket {
+public class Pkt1x00PingRequest implements ISourceCommsPacket {
+
+    public long onEncode;
 
     @Override
     public void encode(DataOutputStream data) throws IOException {
+        onEncode = System.nanoTime();
+        data.writeLong(onEncode);
     }
 
     @Override
     public void decode(DataInputStream data) throws IOException {
+        onEncode = data.readLong();
     }
 
     @Override
-    public void channelRead(SCClient socket) throws IOException {
-        socket.getPacketHandler().reset();
+    public void channelRead(SCClient socket) throws Exception {
+        socket.sendPacket(new Pkt1x01PingReply(onEncode));
     }
 }
