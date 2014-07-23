@@ -1,5 +1,6 @@
 package sourcecoded.comms2.network.socket;
 
+import sourcecoded.comms2.event.EventClientClosed;
 import sourcecoded.comms2.event.EventClientConnected;
 import sourcecoded.comms2.exception.NotAuthenticatedException;
 import sourcecoded.comms2.exception.NotConnectedException;
@@ -47,10 +48,7 @@ public class SCClient {
             try {
                 socket = new Socket(hostname, port);
                 setupStreams();
-            } catch (Exception e) {
-                if (!this.isInterrupted())
-                    e.printStackTrace();
-            }
+            } catch (Exception e) {}
         }
     };
 
@@ -63,10 +61,7 @@ public class SCClient {
                     boolean cont = packetHandler.handlePacket(discriminator, dis);
                     if (cont) packetHandler.sendPacket(dos, new Pkt0x00PacketReceivedConfirmation());
                 }
-            } catch (Exception e) {
-                if (!this.isInterrupted())
-                    e.printStackTrace();
-            }
+            } catch (Exception e) {}
         }
     };
 
@@ -107,7 +102,7 @@ public class SCClient {
                 connect.start();
             }
         } catch (TimeoutException e) {
-            e.printStackTrace();
+            close("Initial Connection Timed Out");
         }
     }
 
@@ -201,7 +196,7 @@ public class SCClient {
 
         listenLoop();
 
-        getPacketHandler().EVENT_BUS.raiseEvent(new EventClientConnected(CLIENT_ID, launchSide));
+        raiseEventBusEvent(new EventClientConnected(this));
     }
 
     private void listenLoop() {
@@ -211,10 +206,17 @@ public class SCClient {
     /**
      * Close the thread
      */
-    public void close() throws IOException {
-        dos.close();
-        dis.close();
-        doListen.interrupt();
-        socket.close();
+    public void close(String reason) {
+        raiseEventBusEvent(new EventClientClosed(this, reason));
+        try {
+            dos.close();
+            dis.close();
+            doListen.interrupt();
+            socket.close();
+        } catch (Exception e) {}
+    }
+
+    public void close() {
+        close("Closed Gracefully");
     }
 }

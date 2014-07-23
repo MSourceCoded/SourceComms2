@@ -1,16 +1,16 @@
 package sourcecoded.comms2.event;
 
+import com.sun.xml.internal.bind.v2.model.core.ID;
 import sourcecoded.comms2.network.SCSide;
+import sourcecoded.comms2.network.socket.SCClient;
 import sourcecoded.events.AbstractEvent;
 
 public class EventClientConnected extends AbstractEvent {
 
-    public String clientID;
-    public SCSide side;
+    public SCClient client;
 
-    public EventClientConnected(String ID, SCSide raise) {
-        this.clientID = ID;
-        this.side = raise;
+    public EventClientConnected(SCClient client) {
+        this.client = client;
     }
 
 }
