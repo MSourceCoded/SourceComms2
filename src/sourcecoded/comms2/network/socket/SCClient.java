@@ -61,7 +61,9 @@ public class SCClient {
                     boolean cont = packetHandler.handlePacket(discriminator, dis);
                     if (cont) packetHandler.sendPacket(dos, new Pkt0x00PacketReceivedConfirmation());
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                close("Interrupted");
+            }
         }
     };
 
@@ -166,15 +168,23 @@ public class SCClient {
 
     /**
      * Send a packet
+     * @param buffer Should this packet be added to the buffer if it is busy?
      */
-    public void sendPacket(ISourceCommsPacket packet) throws Exception {
+    public void sendPacket(ISourceCommsPacket packet, boolean buffer) throws Exception {
         if (!isConnected()) throw new NotConnectedException();
         if (!isAuthenticated()) throw new NotAuthenticatedException();
 
-        if (getPacketHandler().isBusy)
-            getPacketBuffer().append(packet);
-        else
+        if (!getPacketHandler().isBusy) {
             getPacketHandler().sendPacket(dos, packet);
+        } else if (buffer)
+            getPacketBuffer().append(packet);
+    }
+
+    /**
+     * Send a packet
+     */
+    public void sendPacket(ISourceCommsPacket packet) throws Exception {
+        sendPacket(packet, true);
     }
 
     //LISTENING
@@ -208,6 +218,7 @@ public class SCClient {
      */
     public void close(String reason) {
         raiseEventBusEvent(new EventClientClosed(this, reason));
+
         try {
             dos.close();
             dis.close();

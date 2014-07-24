@@ -1,6 +1,10 @@
 package sourcecoded.comms2.network.socket;
 
 
+import sourcecoded.comms2.event.EventClientClosed;
+import sourcecoded.comms2.event.MasterEventBus;
+import sourcecoded.events.annotation.EventListener;
+
 import java.net.Socket;
 import java.util.ArrayList;
 
@@ -10,6 +14,10 @@ import java.util.ArrayList;
 public class ServerConnectionHandler {
 
     public ArrayList<SCClient> clients = new ArrayList<SCClient>();
+
+    public ServerConnectionHandler() {
+        MasterEventBus.instance().register(this);
+    }
 
     public void addClient(Socket client) {
         clients.add(new SCClient(client));
@@ -23,7 +31,18 @@ public class ServerConnectionHandler {
         return null;
     }
 
+    public boolean idExists(String id) {
+        return getClient(id) != null;
+    }
+
     public void remove(String id) {
         clients.remove(getClient(id));
     }
+
+    @EventListener
+    public void disconnected(EventClientClosed event) {
+        clients.remove(event.client);
+    }
+
+
 }
